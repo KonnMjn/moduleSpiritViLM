@@ -1,42 +1,3 @@
-# import os
-# import torch
-# from .model.model import ViSpiritLM
-# from .model.utils import convert_to_wav_tensor, build_interleaved_prompt
-
-# # 1) Đặt ENV tới checkpoint HuBERT & KMeans của bạn
-# os.environ["VI_SPIRITLM_HUBERT_CKPT"] = "D:\\VSCode\\KLTN\\moduleforSpiritViLM_gpt\\checkpoints\\hubert_finetuned\\hubert_best.pt"
-# os.environ["VI_SPIRITLM_KMEANS"]      = "D:\\VSCode\\KLTN\\moduleforSpiritViLM_gpt\\checkpoints\\hubert_finetuned\\kmeans_model.joblib"
-
-# # 2) Khởi tạo LM (Vistral + LoRA)
-# # BASE_LM = "Viet-Mistral/Vistral-7B-Chat"   # hoặc đường dẫn local tới base model
-# BASE_LM = r"D:\\VSCode\\KLTN\\Vistral-7B-Chat"
-# LORA_DIR = "D:\\VSCode\\KLTN\\moduleforSpiritViLM_gpt\\checkpoints\\vistral_finetuned" # thư mục chứa adapter_config.json + adapter_model.safetensors + tokenizer files
-
-# # model = ViSpiritLM(BASE_LM, LORA_DIR, device="cuda", torch_dtype=torch.bfloat16)
-# model = ViSpiritLM(BASE_LM, LORA_DIR, device="cpu", torch_dtype=torch.float32)
-
-# # 3) Encode audio -> units (nếu muốn đưa audio vào prompt)
-# wav = convert_to_wav_tensor("D:\\VSCode\\KLTN\\moduleforSpiritViLM_gpt\\examples\\00000.flac", device=torch.device("cuda"))
-# units = model.encode_audio_to_units(wav)
-# unit_str = model.units_to_string(units)
-
-# # 4a) Sinh TEXT từ prompt hỗn hợp
-# prompt = build_interleaved_prompt([
-#     ("text",  "Xin chào, đây là ví dụ."),
-#     ("speech", unit_str),
-#     ("text",  "Hãy tiếp tục trả lời bằng văn bản: "),
-# ])
-# text_out = model.generate_text(prompt, max_new_tokens=128, temperature=0.8)
-# print("TEXT OUT:", text_out)
-
-# # # 4b) Sinh SPEECH-UNITS từ prompt văn bản
-# # prompt2 = build_interleaved_prompt([
-# #     ("text", "Hãy phát âm câu sau theo giọng tự nhiên: Xin chào Việt Nam!"),
-# # ])
-# # speech_units = model.generate_speech_units(prompt2, max_new_tokens=400, temperature=0.9)
-
-# # (Chưa có vocoder, speech_units là list[int]. Khi bạn train xong HiFiGAN, chỉ cần synthesize(units) là ra waveform.)
-
 
 # moduleforSpiritViLM_gpt/run.py
 import os
@@ -159,6 +120,9 @@ print(f"[INFO] BASE_LM={BASE_LM}")
 print(f"[INFO] LORA_DIR={LORA_DIR}")
 print(f"[INFO] HuBERT ckpt={pred_ckpt}")
 print(f"[INFO] KMeans path={km_env_path}")
+
+import sys
+sys.path.insert(0, '/workspace/moduleforSpiritViLM_gpt/speech_tokenizer')  # hoặc đường dẫn đúng tới speech_tokenizer
 
 model = ViSpiritLM(BASE_LM, LORA_DIR, device=device, torch_dtype=dtype)
 
