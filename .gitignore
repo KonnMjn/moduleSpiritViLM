@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Checkpoints & large models
+checkpoints/
+*.pt
+*.bin
+*.safetensors
+*.joblib
+
+# WandB, cache
+wandb/
+.cache/
