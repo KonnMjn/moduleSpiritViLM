@@ -1,4 +1,3 @@
-
 # moduleforSpiritViLM_gpt/run.py
 import os
 import torch

@@ -21,17 +21,49 @@ class VietMedHuBERTPredictor:
     def __init__(self, hubert_ckpt: str, device: torch.device, vocab_size: int = 100):
         self.device = device
         self.vocab_size = vocab_size
-        self.model = self._build_model(vocab_size=vocab_size)
+        # self.model = self._build_model(vocab_size=vocab_size) 
+        self.model = self._build_model(vocab_size=vocab_size, hubert_ckpt=hubert_ckpt)
         self._load_state(self.model, hubert_ckpt)
         self.model.eval().to(device)
 
-    def _build_model(self, vocab_size: int) -> torch.nn.Module:
+    # def _build_model(self, vocab_size: int) -> torch.nn.Module:
+    #     """
+    #     Script train đã dùng: from hubert.model import Hubert
+    #     Ta yêu cầu gói 'hubert' có sẵn trong PYTHONPATH khi chạy inference.
+    #     """
+        
+    #     import sys
+    #     sys.path.insert(0, '/workspace/moduleSpiritViLM/hubert')  # Đảm bảo đúng đường dẫn tới thư mục chứa hubert
+
+    #     # try:
+    #     #     from model import Hubert  # Import từ thư mục `hubert` mà bạn đã tạo
+    #     #     print("[INFO] Successfully imported Hubert!")
+    #     # except ImportError as e:
+    #     #     print(f"[ERROR] Failed to import Hubert: {e}")
+    #     try:
+    #         from model import Hubert  # Import từ thư mục `hubert` mà bạn đã tạo
+    #         print("[INFO] Successfully imported Hubert!")
+    #     except Exception as e:
+    #         raise RuntimeError(
+    #             "Không import được 'hubert.model.Hubert'. "
+    #             "Hãy đảm bảo package 'hubert' (thư mục chứa model) có trong PYTHONPATH.\n"
+    #             f"Import error: {e}"
+    #         )
+    #     # Theo train script: Hubert(num_label_embeddings=num_clusters, mask=True)
+    #     model = Hubert(num_label_embeddings=vocab_size, mask=True)
+    #     return model
+    
+    def _build_model(self, vocab_size: int, hubert_ckpt: str) -> torch.nn.Module:
         """
         Script train đã dùng: from hubert.model import Hubert
         Ta yêu cầu gói 'hubert' có sẵn trong PYTHONPATH khi chạy inference.
         """
+        import sys
+        sys.path.insert(0, '/workspace/moduleSpiritViLM/hubert')  # Đảm bảo đúng đường dẫn tới thư mục chứa hubert
+
         try:
-            from hubert.model import Hubert
+            from model import Hubert  # Import từ thư mục `hubert` mà bạn đã tạo
+            print("[INFO] Successfully imported Hubert!")
         except Exception as e:
             raise RuntimeError(
                 "Không import được 'hubert.model.Hubert'. "
@@ -39,8 +71,10 @@ class VietMedHuBERTPredictor:
                 f"Import error: {e}"
             )
         # Theo train script: Hubert(num_label_embeddings=num_clusters, mask=True)
-        model = Hubert(num_label_embeddings=vocab_size, mask=True)
+        # Truyền 'hubert_ckpt' vào constructor của Hubert
+        model = Hubert(num_label_embeddings=vocab_size, mask=True, model_ckpt_path=hubert_ckpt)
         return model
+
 
     def _load_state(self, model: torch.nn.Module, ckpt_path: str):
         sd = torch.load(ckpt_path, map_location="cpu")
