@@ -30,43 +30,6 @@ class SpeechSide:
     def string_to_units(self, s: str):
         return self.codec.string_to_units(s)
 
-
-# def load_speech_side(
-#     mode: str = "base",
-#     device: Optional[torch.device] = None
-# ) -> SpeechSide:
-#     """
-#     Chọn backend qua ENV (ưu tiên predictor):
-#       - VI_SPIRITLM_BACKEND = "predictor" | "mhubert_kmeans" (mặc định: "predictor")
-
-#     Biến môi trường đường dẫn:
-#       Backend predictor:
-#         - VI_SPIRITLM_HUBERT_PREDICTOR: đường tới hubert_best.pt  (bắt buộc)
-#       Backend mhubert_kmeans:
-#         - VI_SPIRITLM_MHUBERT_ID:      id HF (mặc định "utter-project/mHuBERT-147")
-#         - VI_SPIRITLM_KMEANS:          đường tới kmeans_model.joblib (bắt buộc)
-
-#     Tất cả dùng sr=16k. vocab_size=100 (0..99).
-#     """
-#     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#     backend = os.environ.get("VI_SPIRITLM_BACKEND", "predictor").lower()
-#     vocab_size = 100
-
-#     if backend == "mhubert_kmeans":
-#         mhubert_id = os.environ.get("VI_SPIRITLM_MHUBERT_ID", "utter-project/mHuBERT-147")
-#         kmeans     = os.environ.get("VI_SPIRITLM_KMEANS")
-#         if not kmeans:
-#             raise RuntimeError("Missing env VI_SPIRITLM_KMEANS for backend= mhuBERT_kmeans")
-#         encoder = MHuBERTKMeans(mhubert_id=mhubert_id, kmeans_path=kmeans, device=device)
-#         return SpeechSide(encoder, vocab_size=vocab_size)
-
-#     # default: predictor
-#     hubert_pt = os.environ.get("VI_SPIRITLM_HUBERT_PREDICTOR") or os.environ.get("VI_SPIRITLM_HUBERT_CKPT")
-#     if not hubert_pt:
-#         raise RuntimeError("Missing env VI_SPIRITLM_HUBERT_PREDICTOR (path to hubert_best.pt)")
-#     encoder = VietMedHuBERTPredictor(hubert_ckpt=hubert_pt, device=device, vocab_size=vocab_size)
-#     return SpeechSide(encoder, vocab_size=vocab_size)
-
 def load_speech_side(mode: str = "base", device: Optional[torch.device] = None) -> SpeechSide:
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
     backend = os.environ.get("VI_SPIRITLM_BACKEND", "predictor").lower()

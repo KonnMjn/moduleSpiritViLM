@@ -14,95 +14,44 @@ import joblib
 
 # =============== Backend A: Predictor ==========================
 class VietMedHuBERTPredictor:
-    """
-    Load class 'Hubert' từ gói local 'hubert.model' và nạp state_dict hubert_best.pt.
-    Forward: (B, 1, T) -> logits(B, T', Vocab), (mask) | có thể trả về tuple, ta chỉ cần logits.
-    """
     def __init__(self, hubert_ckpt: str, device: torch.device, vocab_size: int = 100):
         self.device = device
-        self.vocab_size = vocab_size
-        # self.model = self._build_model(vocab_size=vocab_size) 
-        self.model = self._build_model(vocab_size=vocab_size, hubert_ckpt=hubert_ckpt)
-        self._load_state(self.model, hubert_ckpt)
-        self.model.eval().to(device)
-
-    # def _build_model(self, vocab_size: int) -> torch.nn.Module:
-    #     """
-    #     Script train đã dùng: from hubert.model import Hubert
-    #     Ta yêu cầu gói 'hubert' có sẵn trong PYTHONPATH khi chạy inference.
-    #     """
         
-    #     import sys
-    #     sys.path.insert(0, '/workspace/moduleSpiritViLM/hubert')  # Đảm bảo đúng đường dẫn tới thư mục chứa hubert
-
-    #     # try:
-    #     #     from model import Hubert  # Import từ thư mục `hubert` mà bạn đã tạo
-    #     #     print("[INFO] Successfully imported Hubert!")
-    #     # except ImportError as e:
-    #     #     print(f"[ERROR] Failed to import Hubert: {e}")
-    #     try:
-    #         from model import Hubert  # Import từ thư mục `hubert` mà bạn đã tạo
-    #         print("[INFO] Successfully imported Hubert!")
-    #     except Exception as e:
-    #         raise RuntimeError(
-    #             "Không import được 'hubert.model.Hubert'. "
-    #             "Hãy đảm bảo package 'hubert' (thư mục chứa model) có trong PYTHONPATH.\n"
-    #             f"Import error: {e}"
-    #         )
-    #     # Theo train script: Hubert(num_label_embeddings=num_clusters, mask=True)
-    #     model = Hubert(num_label_embeddings=vocab_size, mask=True)
-    #     return model
-    
-    def _build_model(self, vocab_size: int, hubert_ckpt: str) -> torch.nn.Module:
-        """
-        Script train đã dùng: from hubert.model import Hubert
-        Ta yêu cầu gói 'hubert' có sẵn trong PYTHONPATH khi chạy inference.
-        """
+        # Import class Hubert
         import sys
-        sys.path.insert(0, '/workspace/moduleSpiritViLM/hubert')  # Đảm bảo đúng đường dẫn tới thư mục chứa hubert
-
+        sys.path.insert(0, '/workspace/moduleSpiritViLM/hubert')
         try:
-            from model import Hubert  # Import từ thư mục `hubert` mà bạn đã tạo
-            print("[INFO] Successfully imported Hubert!")
-        except Exception as e:
-            raise RuntimeError(
-                "Không import được 'hubert.model.Hubert'. "
-                "Hãy đảm bảo package 'hubert' (thư mục chứa model) có trong PYTHONPATH.\n"
-                f"Import error: {e}"
-            )
-        # Theo train script: Hubert(num_label_embeddings=num_clusters, mask=True)
-        # Truyền 'hubert_ckpt' vào constructor của Hubert
-        model = Hubert(num_label_embeddings=vocab_size, mask=True, model_ckpt_path=hubert_ckpt)
-        return model
+            from model import Hubert
+        except ImportError:
+            from ..hubert.model import Hubert
 
-
-    def _load_state(self, model: torch.nn.Module, ckpt_path: str):
-        sd = torch.load(ckpt_path, map_location="cpu")
-        # Lưu ý: train script dùng torch.save(hubert.state_dict(), ...),
-        # nên ở đây load_state_dict(state_dict) là đúng.
-        model.load_state_dict(sd, strict=True)
+        # Khởi tạo model (chưa load weight)
+        self.model = Hubert(num_label_embeddings=vocab_size)
+        
+        # Gọi hàm load thông minh mới viết
+        self.model.load_weights_from_ckpt(hubert_ckpt)
+        
+        self.model.eval().to(device)
+        
+        # Cập nhật vocab_size thực tế từ model (đề phòng resize lên 256)
+        self.vocab_size = self.model.proj.out_features
+        print(f"[INFO] Final vocab size: {self.vocab_size}")
 
     @torch.inference_mode()
     def encode(self, wav_1xT: torch.Tensor) -> List[int]:
-        """
-        wav_1xT: (1, T) float32 @ 16k
-        return: List[int] length ~ T_frames (0..99)
-        """
         if wav_1xT.dim() != 2 or wav_1xT.size(0) != 1:
             raise ValueError("Expect wav_1xT shape (1, T)")
-        x = wav_1xT.unsqueeze(0)  # (B=1, 1, T)
-        x = x.to(self.device)
+            
+        x = wav_1xT.unsqueeze(0).to(self.device) # (1, 1, T)
+        
         out = self.model(x)
-        # train script: logits, mask_out = hubert(wavs)
-        if isinstance(out, (list, tuple)):
-            logits = out[0]
-        else:
-            logits = out
-        # logits: (B, T', V)
-        if logits.dim() != 3 or logits.size(0) != 1 or logits.size(-1) != self.vocab_size:
-            raise RuntimeError(f"Unexpected logits shape: {tuple(logits.shape)}")
-        codes = torch.argmax(logits, dim=-1)  # (1, T')
+        # out có thể là (logits, mask) hoặc logits
+        logits = out[0] if isinstance(out, tuple) else out
+            
+        codes = torch.argmax(logits, dim=-1)
         return codes.squeeze(0).detach().cpu().tolist()
+
+# ... (Giữ nguyên phần còn lại của file: MHuBERTKMeans, v.v.) ...
 
 
 # =============== Backend B: mHuBERT + KMeans ====================
